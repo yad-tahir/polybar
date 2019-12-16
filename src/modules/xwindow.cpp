@@ -16,27 +16,27 @@ namespace modules {
    * currently active to enable title tracking
    */
   active_window::active_window(xcb_connection_t* conn, xcb_window_t win) : m_connection(conn), m_window(win) {
-    if (m_window != XCB_NONE) {
-      const unsigned int mask{XCB_EVENT_MASK_PROPERTY_CHANGE};
-      xcb_change_window_attributes(m_connection, m_window, XCB_CW_EVENT_MASK, &mask);
-    }
+	if (m_window != XCB_NONE) {
+	  const unsigned int mask{XCB_EVENT_MASK_PROPERTY_CHANGE};
+	  xcb_change_window_attributes(m_connection, m_window, XCB_CW_EVENT_MASK, &mask);
+	}
   }
 
   /**
    * Deconstruct window object
    */
   active_window::~active_window() {
-    if (m_window != XCB_NONE) {
-      const unsigned int mask{XCB_EVENT_MASK_NO_EVENT};
-      xcb_change_window_attributes(m_connection, m_window, XCB_CW_EVENT_MASK, &mask);
-    }
+	if (m_window != XCB_NONE) {
+	  const unsigned int mask{XCB_EVENT_MASK_NO_EVENT};
+	  xcb_change_window_attributes(m_connection, m_window, XCB_CW_EVENT_MASK, &mask);
+	}
   }
 
   /**
    * Check if current window matches passed value
    */
   bool active_window::match(const xcb_window_t win) const {
-    return m_window == win;
+	return m_window == win;
   }
 
   /**
@@ -45,98 +45,119 @@ namespace modules {
    *  _NET_WM_VISIBLE_NAME
    */
   string active_window::title() const {
-    string title;
+	string title;
 
-    if (!(title = ewmh_util::get_wm_name(m_window)).empty()) {
-      return title;
-    } else if (!(title = ewmh_util::get_visible_name(m_window)).empty()) {
-      return title;
-    } else if (!(title = icccm_util::get_wm_name(m_connection, m_window)).empty()) {
-      return title;
-    } else {
-      return "";
-    }
+	if (!(title = ewmh_util::get_wm_name(m_window)).empty()) {
+	  return title;
+	} else if (!(title = ewmh_util::get_visible_name(m_window)).empty()) {
+	  return title;
+	} else if (!(title = icccm_util::get_wm_name(m_connection, m_window)).empty()) {
+	  return title;
+	} else {
+	  return "";
+	}
   }
 
   /**
    * Construct module
    */
   xwindow_module::xwindow_module(const bar_settings& bar, string name_)
-      : static_module<xwindow_module>(bar, move(name_)), m_connection(connection::make()) {
-    // Initialize ewmh atoms
-    if ((ewmh_util::initialize()) == nullptr) {
-      throw module_error("Failed to initialize ewmh atoms");
-    }
+	  : static_module<xwindow_module>(bar, move(name_)), m_connection(connection::make()) {
+	// Initialize ewmh atoms
+	if ((ewmh_util::initialize()) == nullptr) {
+	  throw module_error("Failed to initialize ewmh atoms");
+	}
 
-    // Check if the WM supports _NET_ACTIVE_WINDOW
-    if (!ewmh_util::supports(_NET_ACTIVE_WINDOW)) {
-      throw module_error("The WM does not list _NET_ACTIVE_WINDOW as a supported hint");
-    }
+	// Check if the WM supports _NET_ACTIVE_WINDOW
+	if (!ewmh_util::supports(_NET_ACTIVE_WINDOW)) {
+	  throw module_error("The WM does not list _NET_ACTIVE_WINDOW as a supported hint");
+	}
 
-    // Add formats and elements
-    m_formatter->add(DEFAULT_FORMAT, TAG_LABEL, {TAG_LABEL});
+	// Add formats and elements
+	m_formatter->add(DEFAULT_FORMAT, TAG_LABEL, {TAG_LABEL});
 
-    if (m_formatter->has(TAG_LABEL)) {
-      m_statelabels.emplace(state::ACTIVE, load_optional_label(m_conf, name(), "label", "%title%"));
-      m_statelabels.emplace(state::EMPTY, load_optional_label(m_conf, name(), "label-empty", ""));
-    }
+	if (m_formatter->has(TAG_LABEL)) {
+	  m_statelabels.emplace(state::ACTIVE, load_optional_label(m_conf, name(), "label", "%title%"));
+	  m_statelabels.emplace(state::EMPTY, load_optional_label(m_conf, name(), "label-empty", ""));
+	}
   }
 
   /**
    * Handler for XCB_PROPERTY_NOTIFY events
    */
   void xwindow_module::handle(const evt::property_notify& evt) {
-    if (evt->atom == _NET_ACTIVE_WINDOW) {
-      update(true);
-    } else if (evt->atom == _NET_CURRENT_DESKTOP) {
-      update(true);
-    } else if (evt->atom == _NET_WM_VISIBLE_NAME) {
-      update();
-    } else if (evt->atom == _NET_WM_NAME) {
-      update();
-    } else {
-      return;
-    }
+	if (evt->atom == _NET_ACTIVE_WINDOW) {
+	  update(true);
+	} else if (evt->atom == _NET_CURRENT_DESKTOP) {
+	  update(true);
+	} else if (evt->atom == _NET_WM_VISIBLE_NAME) {
+	  update();
+	} else if (evt->atom == _NET_WM_NAME) {
+	  update();
+	} else {
+	  return;
+	}
 
-    broadcast();
+	broadcast();
   }
 
   /**
    * Update the currently active window and query its title
    */
   void xwindow_module::update(bool force) {
-    std::lock(m_buildlock, m_updatelock);
-    std::lock_guard<std::mutex> guard_a(m_buildlock, std::adopt_lock);
-    std::lock_guard<std::mutex> guard_b(m_updatelock, std::adopt_lock);
+	std::lock(m_buildlock, m_updatelock);
+	std::lock_guard<std::mutex> guard_a(m_buildlock, std::adopt_lock);
+	std::lock_guard<std::mutex> guard_b(m_updatelock, std::adopt_lock);
 
-    xcb_window_t win;
+	xcb_window_t win;
 
-    if (force) {
-      m_active.reset();
-    }
+	if (force) {
+	  m_active.reset();
+	}
 
-    if (!m_active && (win = ewmh_util::get_active_window()) != XCB_NONE) {
-      m_active = make_unique<active_window>(m_connection, win);
-    }
+	if (!m_active && (win = ewmh_util::get_active_window()) != XCB_NONE) {
+	  m_active = make_unique<active_window>(m_connection, win);
+	}
 
-    if (m_active) {
-      m_label = m_statelabels.at(state::ACTIVE)->clone();
-      m_label->reset_tokens();
-      m_label->replace_token("%title%", m_active->title());
-    } else {
-      m_label = m_statelabels.at(state::EMPTY)->clone();
-    }
+	if (m_active) {
+	  m_label = m_statelabels.at(state::ACTIVE)->clone();
+	  m_label->reset_tokens();
+
+	  string t = m_active->title();
+	  if(t.length() > 3 && t.at(t.length()-1) == '%'){
+		int b = t.find_last_of("-");
+		//Find percentage part and convert it to integer
+		string p = t.substr(b+2);
+		p.replace(p.end()-1,p.end(),"");
+		float per = stoi(p)/100.0;
+		int charPos = per*b;
+
+		if(charPos == b )
+		  charPos -= 1;
+
+		// Convert percentage to progress bar by underlining characters
+		string newTitle = "%{+u}";
+		newTitle += t.substr(0,charPos);
+		newTitle += "%{-u}";
+		newTitle += t.substr(charPos, b-charPos);
+		t = newTitle;
+	  }
+	  m_label->replace_token("%title%", t);
+
+	} else {
+	  m_label = m_statelabels.at(state::EMPTY)->clone();
+	}
   }
 
   /**
    * Output content as defined in the config
    */
   bool xwindow_module::build(builder* builder, const string& tag) const {
-    if (tag == TAG_LABEL && m_label && m_label.get()) {
-      builder->node(m_label);
-      return true;
-    }
-    return false;
+	if (tag == TAG_LABEL && m_label && m_label.get()) {
+	  builder->node(m_label);
+	  return true;
+	}
+	return false;
   }
 }
 
