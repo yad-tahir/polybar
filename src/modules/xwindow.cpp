@@ -3,7 +3,6 @@
 #include "utils/factory.hpp"
 #include "x11/atoms.hpp"
 #include "x11/connection.hpp"
-
 #include "modules/meta/base.inl"
 
 POLYBAR_NS
@@ -124,23 +123,22 @@ namespace modules {
 	  m_label->reset_tokens();
 
 	  string t = m_active->title();
-	  if(t.length() > 3 && t.at(t.length()-1) == '%'){
-		int b = t.find_last_of("-");
+	  if(t.length() > 3 && t.find("%") != string::npos){
+		int b = t.find_last_of("%");
 		//Find percentage part and convert it to integer
-		string p = t.substr(b+2);
-		p.replace(p.end()-1,p.end(),"");
+		string p = t.substr(b-3,3);
 		float per = stoi(p)/100.0;
-		int charPos = per*b;
+		int charPos = per*t.length();
 
 		if(charPos == b )
 		  charPos -= 1;
 
 		// Convert percentage to progress bar by underlining characters
-		string newTitle = "%{+u}";
-		newTitle += t.substr(0,charPos);
-		newTitle += "%{-u}";
-		newTitle += t.substr(charPos, b-charPos);
-		t = newTitle;
+		string formattedTitle = "%{+u}";
+		formattedTitle += t.substr(0,charPos);
+		formattedTitle += "%{-u}";
+		formattedTitle += t.substr(charPos);
+		t = formattedTitle;
 	  }
 	  m_label->replace_token("%title%", t);
 
