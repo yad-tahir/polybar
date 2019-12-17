@@ -4,6 +4,7 @@
 #include "x11/atoms.hpp"
 #include "x11/connection.hpp"
 #include "modules/meta/base.inl"
+#include <regex>
 
 POLYBAR_NS
 
@@ -128,6 +129,8 @@ namespace modules {
 		//Find percentage part and convert it to integer
 		string p = t.substr(b-3,3);
 		float per = stoi(p)/100.0;
+		//Remove the actual percentage from the title
+		t = regex_replace(t, std::regex ("([ ][\\d]+[%])"), "");
 		int charPos = per*t.length();
 
 		if(charPos == b )
