@@ -124,22 +124,17 @@ namespace modules {
 	  m_label->reset_tokens();
 
 	  string t = m_active->title();
-	  if(t.length() > 3 && t.find("%") != string::npos){
-		int b = t.find_last_of("%");
-		//Find percentage part and convert it to integer
-		string p = t.substr(b-3,3);
+	  std::smatch sm;
+	  if(regex_match(t,sm, std::regex(".*([ ][\\d]+[%]).*"))){
+		//Remove the percentage symbol and convert it to integer
+		string p = regex_replace(sm[1].str(),std::regex("%"),"");
 		float per = stoi(p)/100.0;
-		//Remove the actual percentage from the title
-		t = regex_replace(t, std::regex ("([ ][\\d]+[%])"), "");
+		// Remove the actual percentage part from the title
+		t = regex_replace(t, std::regex("([ ][\\d]+[%])"), "");
 		int charPos = per*t.length();
 
-		if(charPos == b )
-		  charPos -= 1;
-
 		// Convert percentage to progress bar by underlining characters
-		string formattedTitle = "%{+u}";
-		formattedTitle += t.substr(0,charPos);
-		formattedTitle += "%{-u}";
+		string formattedTitle = "%{+u}" + t.substr(0,charPos) + "%{-u}";
 		formattedTitle += t.substr(charPos);
 		t = formattedTitle;
 	  }
